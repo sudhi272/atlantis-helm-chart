@@ -11,9 +11,10 @@ nameOverride: ""
 ## An option to override the atlantis url,
 ##   if not using an ingress, set it to the external IP.
 # atlantisUrl: http://10.0.0.0
+atlantisUrl: http://a8250dd3553ab40779673a9b0fee58cb-871763480.ap-south-1.elb.amazonaws.com
 
 # Replace this with your own repo allowlist:
-orgAllowlist: <replace-me>
+orgAllowlist: "github.com/sudhi272/*"
 # logLevel: "debug"
 
 # If using GitHub, specify like the following:
@@ -132,7 +133,7 @@ aws: {}
 image:
   repository: ghcr.io/runatlantis/atlantis
   # if not set appVersion field from Chart.yaml is used
-  tag: ""
+  tag: "v0.27.1"
   pullPolicy: Always
 
 ## Optionally specify an array of imagePullSecrets.
@@ -173,6 +174,28 @@ image:
 #  # metrics:
 #  #   prometheus:
 #  #     endpoint: /metrics
+
+repoConfig: |
+  ---
+  repos:
+  - id: /.*/
+    branch: /.*/
+    workflow: default
+    apply_requirements: [ mergeable]
+    allowed_overrides: [apply_requirements, workflow, delete_source_branch_on_merge]
+    allowed_workflows: []
+    allow_custom_workflows: true
+    repo_config_file: atlantis-repo-level.yaml
+  workflows:
+    default:
+      plan:
+        steps:
+        - run: echo "In Terraform Init and Plan updated"
+        - run: terragrunt init
+        - run: terragrunt plan
+      apply:
+        steps:
+        - run: terragrunt apply -auto-approve
 
 # allowForkPRs enables atlantis to run on a fork Pull Requests
 allowForkPRs: false
@@ -241,8 +264,9 @@ readinessProbe:
   scheme: HTTP
 
 service:
-  type: NodePort
-  annotations: {}
+  type: LoadBalancer
+  annotations: 
+    "helm.sh/resource-policy": keep
   port: 80
   nodePort: null
   targetPort: 4141
@@ -272,7 +296,7 @@ statefulSet:
 # terminationGracePeriodSeconds: 60
 
 ingress:
-  enabled: true
+  enabled: false
   ingressClassName:
   apiVersion: ""
   labels: {}
@@ -491,7 +515,7 @@ initContainers: []
 
 # Install providers/plugins into a path shared with the Atlantis pod
 initConfig:
-  enabled: false
+  enabled: true
   image: alpine:latest
   imagePullPolicy: IfNotPresent
   # sharedDir is set as env var INIT_SHARED_DIR
@@ -504,8 +528,8 @@ initConfig:
     set -eoux pipefail
 
     # example for terragrunt
-    TG_VERSION="v0.47.0"
-    TG_SHA256_SUM="98d45f6bfbfae84b51364c1ad6920f09ecb4d834908b0535e4e331a9fc6fc75b"
+    TG_VERSION="v0.54.12"
+    TG_SHA256_SUM="70fe63eaee52f47f0b4b84b2e35c3e7071f214adab58c810ef052d4f1eb87d53" #Checksum value of $TG_VERSION
     TG_FILE="${INIT_SHARED_DIR}/terragrunt"
     wget https://github.com/gruntwork-io/terragrunt/releases/download/${TG_VERSION}/terragrunt_linux_amd64 -O "${TG_FILE}"
     echo "${TG_SHA256_SUM}  ${TG_FILE}" | sha256sum -c
@@ -513,15 +537,15 @@ initConfig:
     terragrunt -v
 
     # example for terragrunt-atlantis-config
-    TAC_VERSION="1.16.0" # without v
-    TAC_SHA256_SUM="fc3b069cf4ae51e9b7a7d01f09862d1974b260fffb3ec857d661d7b1756fe26f"
-    TAC_FILE="${INIT_SHARED_DIR}/terragrunt-atlantis-config"
-    wget "https://github.com/transcend-io/terragrunt-atlantis-config/releases/download/v${TAC_VERSION}/terragrunt-atlantis-config_${TAC_VERSION}_linux_amd64.tar.gz"
-    echo "${TAC_SHA256_SUM}  terragrunt-atlantis-config_${TAC_VERSION}_linux_amd64.tar.gz" | sha256sum -c
-    tar xf "terragrunt-atlantis-config_${TAC_VERSION}_linux_amd64.tar.gz"
-    cp -fv "terragrunt-atlantis-config_${TAC_VERSION}_linux_amd64/terragrunt-atlantis-config_${TAC_VERSION}_linux_amd64" "${TAC_FILE}"
-    chmod 755 "${TG_FILE}"
-    terragrunt-atlantis-config version
+    # TAC_VERSION="1.16.0" # without v
+    # TAC_SHA256_SUM="fc3b069cf4ae51e9b7a7d01f09862d1974b260fffb3ec857d661d7b1756fe26f"
+    # TAC_FILE="${INIT_SHARED_DIR}/terragrunt-atlantis-config"
+    # wget "https://github.com/transcend-io/terragrunt-atlantis-config/releases/download/v${TAC_VERSION}/terragrunt-atlantis-config_${TAC_VERSION}_linux_amd64.tar.gz"
+    # echo "${TAC_SHA256_SUM}  terragrunt-atlantis-config_${TAC_VERSION}_linux_amd64.tar.gz" | sha256sum -c
+    # tar xf "terragrunt-atlantis-config_${TAC_VERSION}_linux_amd64.tar.gz"
+    # cp -fv "terragrunt-atlantis-config_${TAC_VERSION}_linux_amd64/terragrunt-atlantis-config_${TAC_VERSION}_linux_amd64" "${TAC_FILE}"
+    # chmod 755 "${TG_FILE}"
+    # terragrunt-atlantis-config version
 
 
 # hostAliases:
