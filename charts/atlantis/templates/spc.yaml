@@ -1,0 +1,33 @@
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: {{ template "atlantis.fullname" . }}-aws-secrets-spc
+spec:
+  provider: aws
+  parameters:
+    objects: |
+        - objectName: "atlantis-aws-secret"
+          objectType: "secretsmanager"
+          ObjectAlias: "aws_creds"
+          jemsPath:
+            - path: "ACCESS_KEY"
+              objectAlias: ACCESS_KEY
+            - path: "SECRET_KEY"
+              objectAlias: SECRET_KEY
+---
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: {{ template "atlantis.fullname" . }}-git-secrets-spc
+spec:
+  provider: aws
+  parameters:
+    objects: |
+        - objectName: "atlantis-git-secret"
+          objectType: "secretsmanager"
+          ObjectAlias: "git_creds"
+          jemsPath:
+            - path: "GITHUB_TOKEN"
+              objectAlias: GITHUB_TOKEN
+            - path: "GITHUB_SECRET"
+              objectAlias: GITHUB_SECRET

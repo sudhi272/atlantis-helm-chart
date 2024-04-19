@@ -1,6 +1,6 @@
 ## -------------------------- ##
 # Values to override for your instance.
-## -------------------------- ##
+## -------------------------- ## 
 
 # Provide a name to substitute for the full names of resources
 fullnameOverride: ""
@@ -11,7 +11,7 @@ nameOverride: ""
 ## An option to override the atlantis url,
 ##   if not using an ingress, set it to the external IP.
 # atlantisUrl: http://10.0.0.0
-atlantisUrl: http://a8250dd3553ab40779673a9b0fee58cb-871763480.ap-south-1.elb.amazonaws.com
+atlantisUrl: http://a122f819d3ebf484ab5fa51e889547e2-185220023.eu-west-2.elb.amazonaws.com
 
 # Replace this with your own repo allowlist:
 orgAllowlist: "github.com/sudhi272/*"
@@ -19,9 +19,9 @@ orgAllowlist: "github.com/sudhi272/*"
 
 # If using GitHub, specify like the following:
 github:
-    user: sudhi272
-
-vcsSecretName: 'gh-creds'
+    user: 
+ 
+# vcsSecretName: 'gh-creds'
 
 # github:
 #   user: foo
@@ -107,16 +107,16 @@ vcsSecretName: 'gh-creds'
 aws: {}
 #   credentials: |
 #     [default]
-#     aws_access_key_id=YOUR_ACCESS_KEY_ID
-#     aws_secret_access_key=YOUR_SECRET_ACCESS_KEY
-#     region=us-east-1
+#     aws_access_key_id=access_key_id
+#     aws_secret_access_key=SECRET_KEY_ID
+#     region=eu-west-2
 #   config: |
 #     [profile a_role_to_assume]
 #     role_arn = arn:aws:iam::123456789:role/service-role/roleToAssume
 #     source_profile = default
 #   directory: "/home/atlantis/.aws"
 # To reference an already existing Secret object with AWS credentials
-# awsSecretName: 'mysecretwithawscreds'
+# awsSecretName: 'aws-creds'
 
 ## To keep backwards compatibility
 ## Deprecated (see googleServiceAccountSecrets)
@@ -131,9 +131,9 @@ aws: {}
 ## -------------------------- ##
 
 image:
-  repository: ghcr.io/runatlantis/atlantis
+  repository: sudhi272/atlantis
   # if not set appVersion field from Chart.yaml is used
-  tag: "v0.27.1"
+  tag: "2.0.0-atlantisv0.27.1"
   pullPolicy: Always
 
 ## Optionally specify an array of imagePullSecrets.
@@ -190,7 +190,7 @@ repoConfig: |
     default:
       plan:
         steps:
-        - run: echo "In Terraform Init and Plan updated"
+        - run: echo "In Terraform Init and Plan"
         - run: terragrunt init
         - run: terragrunt plan
       apply:
@@ -430,9 +430,9 @@ serviceAccount:
   # annotations:
   #   annotation1: value
   #   annotation2: value
-  annotations: {}
+  annotations: 
   # IRSA example:
-  # eks.amazonaws.com/role-arn: role-arn
+    eks.amazonaws.com/role-arn: arn:aws:iam::342476635688:role/k8-sa-role-atlantis
 
 # Optionally deploy rbac to allow for the serviceAccount to manage terraform state via the kubernetes backend
 enableKubernetesBackend: false
@@ -486,13 +486,29 @@ googleServiceAccountSecrets: []
 #     secretName: the_k8s_secret_name
 
 # Optionally specify additional volumes for the pod.
-extraVolumes: []
+extraVolumes:
+  - name: aws-secret-csi-volume
+    csi:
+      driver: secrets-store.csi.k8s.io
+      readOnly: true
+      volumeAttributes:
+        secretProviderClass: v1-atlantis-aws-secrets-spc
+  - name: aws-git-secret-csi-volume
+    csi:
+      driver: secrets-store.csi.k8s.io
+      readOnly: true
+      volumeAttributes:
+        secretProviderClass: v1-atlantis-git-secrets-spc        
 # extraVolumes:
 #   - name: some-volume-name
 #     emptyDir: {}
 
 # Optionally specify additional volume mounts for the container.
-extraVolumeMounts: []
+extraVolumeMounts: 
+  - name: aws-secret-csi-volume
+    mountPath:  "/mnt/aws_secret"
+  - name: aws-git-secret-csi-volume
+    mountPath:  "/mnt/git_secret"    
 # extraVolumeMounts:
 #   - name: some-volume-name
 #     mountPath: /path/in/container
